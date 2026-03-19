@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>闪念加工站 V8.2 (独立应用版)</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="闪念加工">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="闪念加工">
+    <meta name="theme-color" content="#2563EB">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"闪念加工站","short_name":"闪念","display":"standalone","background_color":"#F8FAFC","theme_color":"#2563EB"}'>
+    <style>
+        :root {
+            --primary-color: #2563EB;
+            --english-color: #059669; 
+            --topic-color: #BE185D; 
+            --star-color: #F59E0B; 
+            --bg-color: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --danger-color: #EF4444;
+            --border-color: #E2E8F0;
+            --tag-bg: #E0E7FF;
+            --tag-color: #3730A3;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; position: relative; }
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 1.5rem; transition: color 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px;}
+        
+        .sync-status { font-size: 0.5em; padding: 4px 10px; border-radius: 12px; font-weight: normal; transition: all 0.3s;}
+        .sync-online { background-color: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0;}
+        .sync-offline { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA;}
+        .sync-loading { background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;}
+        
+        .tab-container { display: flex; background-color: #E2E8F0; border-radius: 10px; padding: 4px; margin-bottom: 20px; gap: 4px; }
+        .tab-btn { flex: 1; border: none; background: transparent; padding: 10px 4px; border-radius: 8px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; font-size: 0.9em; text-align: center;}
+        .tab-btn.active.mode-ideas { background-color: white; color: var(--primary-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .tab-btn.active.mode-english { background-color: white; color: var(--english-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .tab-btn.active.mode-topics { background-color: white; color: var(--topic-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02); margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        label { font-weight: 600; font-size: 1.05em;}
+        
+        .mic-btn { background-color: #F1F5F9; border: 1px solid var(--border-color); color: var(--text-main); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.85em; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+        .mic-btn:hover { background-color: #E2E8F0; }
+        .mic-btn.recording { background-color: #FEE2E2; color: var(--danger-color); border-color: #FCA5A5; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        textarea { width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em; resize: vertical; box-sizing: border-box; background-color: #F8FAFC; margin-bottom: 10px; transition: border-color 0.3s;}
+        textarea:focus { outline: none; border-color: var(--primary-color); background-color: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);}
+        body.english-mode textarea:focus { border-color: var(--english-color); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1); }
+        
+        input[type="text"].tag-input, input[type="text"].topic-input-field { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9em; box-sizing: border-box; background-color: #F8FAFC; transition: border-color 0.3s;}
+        input[type="text"].tag-input:focus, input[type="text"].topic-input-field:focus { outline: none; border-color: var(--primary-color); background-color: #fff; }
+        body.english-mode input[type="text"].tag-input:focus { border-color: var(--english-color); }
+
+        .btn-main { background-color: var(--primary-color); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; transition: background-color 0.2s; }
+        .btn-main:hover { background-color: #1D4ED8; }
+        body.english-mode .btn-main { background-color: var(--english-color); }
+        body.english-mode .btn-main:hover { background-color: #047857; }
+        .btn-cancel { background-color: #94A3B8 !important; margin-top: 8px; }
+        .btn-cancel:hover { background-color: #64748B !important; }
+        
+        .filter-group { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;}
+        select { padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; outline: none; flex: 1; background-color: white; cursor: pointer; font-size: 0.9em;}
+        #sortOrder { flex: 0.8; }
+
+        .list-toolbar { display: flex; gap: 10px; align-items: center; background-color: #F1F5F9; padding: 10px; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap;}
+        .toolbar-btn { background-color: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 0.85em; cursor: pointer; color: var(--text-main); transition: all 0.2s; }
+        .toolbar-btn:hover { background-color: #E2E8F0; }
+        .toolbar-btn.ai-batch-btn { background-color: var(--primary-color); color: white; border-color: var(--primary-color); font-weight: bold;}
+        .toolbar-btn.ai-batch-btn:hover { opacity: 0.9; }
+        body.english-mode .toolbar-btn.ai-batch-btn { background-color: var(--english-color); border-color: var(--english-color); }
+        .toolbar-btn.export-btn { margin-left: auto; }
+        
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-item { background-color: #F8FAFC; border-left: 4px solid var(--primary-color); padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0; display: flex; gap: 12px; transition: all 0.3s;}
+        body.english-mode .history-item { border-left-color: var(--english-color); }
+        .history-item.starred { background-color: #FFFBEB; border-left-color: var(--star-color) !important; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15); }
+        
+        .item-checkbox { margin-top: 4px; }
+        .item-checkbox input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color); }
+        body.english-mode .item-checkbox input { accent-color: var(--english-color); }
+        
+        .item-content { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        .history-meta { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-muted); align-items: center; flex-wrap: wrap; gap: 5px;}
+        .date-badge { font-weight: 600; color: var(--primary-color); }
+        body.english-mode .date-badge { color: var(--english-color); }
+        .history-item.starred .date-badge { color: var(--star-color); }
+
+        .topic-badge { background-color: #FCE7F3; color: #BE185D; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;}
+        .history-text { font-size: 0.95em; line-height: 1.5; word-break: break-all; }
+        
+        .tag-container { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tag-badge { background-color: var(--tag-bg); color: var(--tag-color); padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500; }
+        body.english-mode .tag-badge { background-color: #D1FAE5; color: #065F46; }
+        
+        .action-bar { display: flex; gap: 8px; margin-top: 4px; border-top: 1px solid #E2E8F0; padding-top: 10px; flex-wrap: wrap;}
+        .history-item.starred .action-bar { border-top-color: #FDE68A; }
+        .action-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-size: 0.8em; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .action-btn:hover { background-color: #E2E8F0; color: var(--text-main); }
+        .action-btn.star-btn { color: var(--text-muted); }
+        .action-btn.star-btn.active { color: var(--star-color); border-color: #FCD34D; background-color: #FEF3C7; font-weight: 600;}
+        .action-btn.star-btn:hover { background-color: #FEF3C7; color: var(--star-color); border-color: #FCD34D; }
+        .action-btn.topic-btn { background-color: #FFF1F2; color: #BE185D; border-color: #FECDD3; }
+        .action-btn.topic-btn:hover { background-color: #FFE4E6; }
+        .action-btn.ai-btn { background-color: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
+        body.english-mode .action-btn.ai-btn { background-color: #ECFDF5; color: #059669; border-color: #A7F3D0; }
+        .action-btn.ai-btn:hover { filter: brightness(0.95); }
+
+        .empty-state { text-align: center; color: var(--text-muted); font-size: 0.9em; padding: 30px 0; width: 100%;}
+
+        .topic-group { background-color: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);}
+        .topic-group-header { border-bottom: 2px solid #FCE7F3; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;}
+        .topic-group-title { font-size: 1.2em; font-weight: bold; color: var(--topic-color); margin: 0;}
+        .topic-count-pill { background-color: #FCE7F3; color: #BE185D; padding: 4px 10px; border-radius: 20px; font-size: 0.8em; font-weight: bold;}
+        .timeline { border-left: 3px solid #FBCFE8; margin-left: 10px; padding-left: 20px; position: relative;}
+        .timeline-item { margin-bottom: 20px; position: relative; }
+        .timeline-item::before { content: ''; position: absolute; left: -27.5px; top: 4px; width: 12px; height: 12px; background-color: #BE185D; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 1px #FBCFE8;}
+        .timeline-date { font-size: 0.8em; color: var(--text-muted); font-weight: bold; margin-bottom: 4px; }
+        .timeline-content { background-color: #F8FAFC; padding: 12px; border-radius: 8px; font-size: 0.95em; line-height: 1.5; border: 1px solid #E2E8F0; }
+
+        /* ================= 专题选择弹窗样式 ================= */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; backdrop-filter: blur(2px);}
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-content { background: white; padding: 24px; border-radius: 16px; width: 90%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translateY(20px); transition: transform 0.3s ease;}
+        .modal-overlay.show .modal-content { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .modal-title { margin: 0; color: var(--topic-color); font-size: 1.2rem; }
+        .quick-topics-container { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px 0; max-height: 150px; overflow-y: auto; }
+        .quick-topic-chip { background-color: #FFF1F2; color: #BE185D; border: 1px solid #FECDD3; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; cursor: pointer; transition: all 0.2s; white-space: nowrap;}
+        .quick-topic-chip:hover { background-color: #FCE7F3; border-color: #FBCFE8; transform: translateY(-1px); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px;}
+        .btn-topic-save { flex: 2; background-color: var(--topic-color); margin-top: 0; }
+        .btn-topic-save:hover { background-color: #9D174D; }
+        .btn-topic-remove { flex: 1; background-color: #FEE2E2 !important; color: #EF4444; margin-top: 0; border: 1px solid #FCA5A5;}
+        .btn-topic-remove:hover { background-color: #FECACA !important; }
+        .btn-topic-cancel { flex: 1; background-color: #E2E8F0 !important; color: #475569; margin-top: 0; }
+        .btn-topic-cancel:hover { background-color: #CBD5E1 !important; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="mainTitle">📝 闪念加工站 <span id="syncStatus" class="sync-status sync-loading">⏳ 连接云端中...</span></h1>
+    
+    <div class="tab-container">
+        <button id="tabIdeas" class="tab-btn active mode-ideas" onclick="switchMode('ideas')">💡 灵感加工</button>
+        <button id="tabTopics" class="tab-btn" onclick="switchMode('topics')">📈 专题线索</button>
+        <button id="tabEnglish" class="tab-btn" onclick="switchMode('english')">🗣️ 地道英语</button>
+    </div>
+
+    <div class="card" id="inputCard">
+        <div class="header-row">
+            <label id="inputTitle">1. 捕获想法</label>
+            <button id="micBtn" class="mic-btn" onclick="toggleSpeech()">🎤 语音</button>
+        </div>
+        <textarea id="ideaInput" placeholder="输入内容..."></textarea>
+        <input type="text" id="tagInput" class="tag-input" placeholder="添加标签 (用空格分隔)">
+        
+        <button id="saveBtn" class="btn-main" onclick="saveIdea()">💾 保存并云同步</button>
+        <button id="cancelBtn" class="btn-main btn-cancel" style="display: none;" onclick="cancelEdit()">取消编辑</button>
+    </div>
+
+    <div class="card" id="listCard">
+        <div class="header-row">
+            <label id="libTitle">2. 灵感瀑布流</label>
+            <span id="recordCount" style="font-size: 0.85em; color: var(--text-muted);">0 条记录</span>
+        </div>
+        
+        <div id="listControls">
+            <div class="filter-group">
+                <select id="tagFilter" onchange="renderHistory()">
+                    <option value="all">🏷️ 查看全部标签</option>
+                </select>
+                <select id="sortOrder" onchange="renderHistory()">
+                    <option value="time">🕒 按时间排序</option>
+                    <option value="track">🔥 按追踪数量排序</option>
+                </select>
+            </div>
+            
+            <div class="list-toolbar">
+                <button class="toolbar-btn" onclick="toggleSelectAll()">☑️ 全选</button>
+                <button class="toolbar-btn ai-batch-btn" onclick="batchCopyToAI()">🤖 批量发给 AI</button>
+                <button class="toolbar-btn export-btn" onclick="exportAllData()">⬇️ 导出备份</button>
+            </div>
+        </div>
+
+        <ul id="historyList" class="history-list"></ul>
+        <div id="topicsContainer" style="display: none;"></div>
+    </div>
+</div>
+
+<div id="topicModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">📁 归入长线专题</h3>
+        </div>
+        
+        <label style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 8px; display: block;">手动输入新专题名，或点击下方快速选择：</label>
+        <input type="text" id="topicInputModal" class="topic-input-field" placeholder="例如：宏观经济观察、西安楼市...">
+        
+        <div class="quick-topics-container" id="quickTopicsContainer">
+            </div>
+
+        <div class="modal-actions">
+            <button class="btn-main btn-topic-save" onclick="confirmTopicModal()">✔️ 确定</button>
+            <button class="btn-main btn-topic-remove" onclick="removeTopicModal()">🗑️ 移除</button>
+            <button class="btn-main btn-topic-cancel" onclick="closeTopicModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= 1. Firebase 云同步核心逻辑 =================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDP9z-8rDara_cecKYohyMx5dNR2_--XYM",
+      authDomain: "wflg-fc91c.firebaseapp.com",
+      projectId: "wflg-fc91c",
+      storageBucket: "wflg-fc91c.firebasestorage.app",
+      messagingSenderId: "585211852793",
+      appId: "1:585211852793:web:68841339cf4e7261f0af28"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const DOC_REF = db.collection("sync_station").doc("my_core_data"); 
+    
+    async function syncToCloud() {
+        const ideasData = JSON.parse(localStorage.getItem('pure_text_ideas_v2') || '{}');
+        const englishData = JSON.parse(localStorage.getItem('english_expressions_v1') || '{}');
+        const statusEl = document.getElementById('syncStatus');
+        statusEl.className = 'sync-status sync-loading'; statusEl.textContent = '🔄 同步中...';
+        try {
+            await DOC_REF.set({ ideas: ideasData, english: englishData, lastUpdate: new Date().toISOString() });
+            statusEl.className = 'sync-status sync-online'; statusEl.textContent = '🟢 已同步';
+        } catch (error) {
+            statusEl.className = 'sync-status sync-offline'; statusEl.textContent = '🔴 离线 (请检查网络)';
+        }
+    }
+
+    DOC_REF.onSnapshot((docSnap) => {
+        if (docSnap.exists) {
+            const data = docSnap.data();
+            if(data.ideas) localStorage.setItem('pure_text_ideas_v2', JSON.stringify(data.ideas));
+            if(data.english) localStorage.setItem('english_expressions_v1', JSON.stringify(data.english));
+            document.getElementById('syncStatus').className = 'sync-status sync-online';
+            document.getElementById('syncStatus').textContent = '🟢 实时同步中';
+            refreshCurrentView(); updateTagDropdown();
+        } else {
+            document.getElementById('syncStatus').className = 'sync-status sync-online';
+            document.getElementById('syncStatus').textContent = '🟢 准备就绪';
+            syncToCloud(); 
+        }
+    }, (error) => {
+        document.getElementById('syncStatus').className = 'sync-status sync-offline';
+        document.getElementById('syncStatus').textContent = '🔴 离线 (请检查网络)';
+    });
+    window.triggerCloudSync = syncToCloud;
+
+    // ================= 2. 核心业务逻辑 =================
+    const CONFIG = {
+        ideas: { storageKey: 'pure_text_ideas_v2', title: '📝 闪念加工站', inputLabel: '1. 捕获想法', libLabel: '2. 灵感瀑布流', placeholder: '随时记录你的想法...', tagPlaceholder: '添加标签 (用空格分隔)' },
+        english: { storageKey: 'english_expressions_v1', title: '🗣️ 英语语境站', inputLabel: '1. 记录英语盲区', libLabel: '2. 语境瀑布流', placeholder: '遇到不会表达的英语场景...', tagPlaceholder: '添加标签 (如: 日常 职场)' },
+        topics: { title: '📈 追踪与复盘', libLabel: '长线专题线索轴' }
+    };
+
+    let currentMode = 'ideas';
+    let editingState = null;
+    let targetTopicItem = null; // 用于记录当前正在编辑专题的卡片信息 {date, index}
+
+    window.onload = () => { switchMode('ideas'); };
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.body.className = mode === 'english' ? 'english-mode' : '';
+        document.getElementById('tabIdeas').classList.toggle('active', mode === 'ideas');
+        document.getElementById('tabEnglish').classList.toggle('active', mode === 'english');
+        document.getElementById('tabTopics').classList.toggle('active', mode === 'topics');
+        
+        const syncLight = document.getElementById('syncStatus').outerHTML;
+        document.getElementById('mainTitle').innerHTML = CONFIG[mode].title + ' ' + syncLight;
+        document.getElementById('libTitle').textContent = CONFIG[mode].libLabel;
+        
+        if (mode === 'topics') {
+            document.getElementById('inputCard').style.display = 'none';
+            document.getElementById('listControls').style.display = 'none';
+            document.getElementById('historyList').style.display = 'none';
+            document.getElementById('topicsContainer').style.display = 'block';
+            renderTopics();
+        } else {
+            document.getElementById('inputCard').style.display = 'block';
+            document.getElementById('listControls').style.display = 'block';
+            document.getElementById('historyList').style.display = 'block';
+            document.getElementById('topicsContainer').style.display = 'none';
+            document.getElementById('inputTitle').textContent = CONFIG[mode].inputLabel;
+            document.getElementById('ideaInput').placeholder = CONFIG[mode].placeholder;
+            document.getElementById('tagInput').placeholder = CONFIG[mode].tagPlaceholder;
+            cancelEdit(); updateTagDropdown(); renderHistory();
+        }
+    }
+
+    function getStorageKey() { return CONFIG[currentMode === 'topics' ? 'ideas' : currentMode].storageKey; }
+    function refreshCurrentView() { if (currentMode === 'topics') renderTopics(); else renderHistory(); }
+
+    function saveIdea() {
+        const text = document.getElementById('ideaInput').value.trim();
+        const tagString = document.getElementById('tagInput').value.trim();
+        if (!text) return alert("内容不能为空哦！");
+
+        const tags = tagString ? [...new Set(tagString.split(/\s+/).filter(t => t))] : [];
+        let historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+
+        if (editingState) {
+            const { date, index } = editingState;
+            historyData[date][index].text = text;
+            historyData[date][index].tags = tags;
+            cancelEdit(); 
+        } else {
+            const dateObj = new Date();
+            const dateKey = dateObj.toISOString().split('T')[0];
+            const timeStr = dateObj.toTimeString().split(' ')[0].substring(0, 5);
+            if (!historyData[dateKey]) historyData[dateKey] = [];
+            historyData[dateKey].unshift({ time: timeStr, text: text, tags: tags, starred: false });
+        }
+
+        localStorage.setItem(getStorageKey(), JSON.stringify(historyData));
+        document.getElementById('ideaInput').value = ''; document.getElementById('tagInput').value = '';
+        if(isRecording) stopSpeech();
+        updateTagDropdown(); refreshCurrentView(); syncToCloud(); 
+    }
+
+    function renderHistory() {
+        const selectedTag = document.getElementById('tagFilter').value;
+        const sortType = document.getElementById('sortOrder').value; 
+        const historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        const listContainer = document.getElementById('historyList');
+        
+        listContainer.innerHTML = '';
+        let allItems = []; let topicCounts = {}; 
+
+        Object.keys(historyData).forEach(date => {
+            historyData[date].forEach(item => { if (item.topic) topicCounts[item.topic] = (topicCounts[item.topic] || 0) + 1; });
+        });
+
+        Object.keys(historyData).forEach(date => {
+            historyData[date].forEach((item, idx) => {
+                if (selectedTag === 'all' || (item.tags && item.tags.includes(selectedTag))) {
+                    const trackCount = item.topic ? topicCounts[item.topic] : 0;
+                    const dateTimeMs = new Date(`${date}T${item.time}:00`).getTime(); 
+                    allItems.push({ ...item, date: date, originalIndex: idx, trackCount: trackCount, dateTimeMs: dateTimeMs });
+                }
+            });
+        });
+
+        let starredItems = allItems.filter(item => item.starred);
+        let normalItems = allItems.filter(item => !item.starred);
+
+        const sortLogic = (a, b) => {
+            if (sortType === 'track') {
+                if (b.trackCount !== a.trackCount) return b.trackCount - a.trackCount; 
+                return b.dateTimeMs - a.dateTimeMs; 
+            } else { return b.dateTimeMs - a.dateTimeMs; }
+        };
+
+        starredItems.sort(sortLogic); normalItems.sort(sortLogic);
+        const renderList = [...starredItems, ...normalItems];
+
+        let countText = `共 ${renderList.length} 条`;
+        if (starredItems.length > 0) countText += ` · 📌 置顶 ${starredItems.length} 条`;
+        document.getElementById('recordCount').textContent = countText;
+
+        if (renderList.length === 0) { listContainer.innerHTML = `<div class="empty-state">目前还没有相关记录 ☕️</div>`; return; }
+
+        renderList.forEach((item) => {
+            const li = document.createElement('li'); li.className = `history-item ${item.starred ? 'starred' : ''}`;
+            const formattedText = item.text.replace(/\\n/g, '<br>');
+            const tagsHtml = (item.tags && item.tags.length > 0) ? `<div class="tag-container">${item.tags.map(t => `<span class="tag-badge">#${t}</span>`).join('')}</div>` : '';
+            const encodedText = encodeURIComponent(item.text);
+            const topicBadgeHtml = item.topic ? `<span class="topic-badge" onclick="switchMode('topics')" style="cursor:pointer;" title="点击查看专题轴">📈 ${item.topic} (${item.trackCount}条追踪)</span>` : '';
+
+            li.innerHTML = `
+                <div class="item-checkbox"><input type="checkbox" class="idea-cb" data-text="${encodedText}"></div>
+                <div class="item-content">
+                    <div class="history-meta">
+                        <span>${item.starred ? '<span style="color:var(--star-color); font-weight:bold; margin-right:4px;">📌 置顶</span>' : ''}🕒 <span class="date-badge">${item.date}</span> ${item.time}</span>
+                        ${topicBadgeHtml}
+                    </div>
+                    <div class="history-text">${formattedText}</div>
+                    ${tagsHtml}
+                    <div class="action-bar">
+                        <button class="action-btn star-btn ${item.starred ? 'active' : ''}" onclick="toggleStar('${item.date}', ${item.originalIndex})">${item.starred ? '⭐ 取消' : '☆ 星标'}</button>
+                        <button class="action-btn topic-btn" onclick="openTopicModal('${item.date}', ${item.originalIndex})">📁 归入专题</button>
+                        <button class="action-btn ai-btn" onclick="copyToAI('${encodedText}')">🤖 发给 AI</button>
+                        <button class="action-btn" onclick="startEdit('${item.date}', ${item.originalIndex})">✏️ 编辑</button>
+                        <button class="action-btn" onclick="deleteIdea('${item.date}', ${item.originalIndex})">🗑️ 删除</button>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(li);
+        });
+    }
+
+    function renderTopics() {
+        const historyData = JSON.parse(localStorage.getItem(CONFIG.ideas.storageKey) || '{}');
+        const container = document.getElementById('topicsContainer');
+        container.innerHTML = '';
+        let topicGroups = {};
+
+        Object.keys(historyData).forEach(date => {
+            historyData[date].forEach(item => {
+                if (item.topic) {
+                    if (!topicGroups[item.topic]) topicGroups[item.topic] = [];
+                    item.dateTimeMs = new Date(`${date}T${item.time}:00`).getTime();
+                    topicGroups[item.topic].push({ ...item, date: date });
+                }
+            });
+        });
+
+        const topics = Object.keys(topicGroups);
+        document.getElementById('recordCount').textContent = `共有 ${topics.length} 个独立专题追踪`;
+
+        if (topics.length === 0) {
+            container.innerHTML = `<div class="empty-state">目前还没有建立任何专题追踪。<br>在“灵感加工”里点击卡片下方的 [📁 归入专题] 即可创建。</div>`; return;
+        }
+
+        topics.forEach(topicName => {
+            const records = topicGroups[topicName];
+            records.sort((a, b) => a.dateTimeMs - b.dateTimeMs); 
+            let timelineHtml = '';
+            records.forEach(rec => { timelineHtml += `<div class="timeline-item"><div class="timeline-date">${rec.date} ${rec.time}</div><div class="timeline-content">${rec.text.replace(/\\n/g, '<br>')}</div></div>`; });
+
+            const topicBlock = document.createElement('div'); topicBlock.className = 'topic-group';
+            topicBlock.innerHTML = `<div class="topic-group-header"><h2 class="topic-group-title">📈 ${topicName}</h2><span class="topic-count-pill">共 ${records.length} 条追踪</span></div><div class="timeline">${timelineHtml}</div>`;
+            container.appendChild(topicBlock);
+        });
+    }
+
+    // ================= 新增：控制台弹窗逻辑 =================
+    
+    // 1. 打开弹窗，提取所有现有专题
+    function openTopicModal(date, index) {
+        targetTopicItem = { date, index };
+        const historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        const currentTopic = historyData[date][index].topic || '';
+        
+        // 填充当前输入框
+        document.getElementById('topicInputModal').value = currentTopic;
+        
+        // 自动提取全局已有专题
+        const allTopics = new Set();
+        Object.values(historyData).forEach(dayArr => {
+            dayArr.forEach(item => { if (item.topic) allTopics.add(item.topic); });
+        });
+        
+        const container = document.getElementById('quickTopicsContainer');
+        container.innerHTML = '';
+        if (allTopics.size > 0) {
+            Array.from(allTopics).sort().forEach(topic => {
+                const chip = document.createElement('div');
+                chip.className = 'quick-topic-chip';
+                chip.textContent = topic;
+                // 点击标签，自动填入输入框
+                chip.onclick = () => { document.getElementById('topicInputModal').value = topic; };
+                container.appendChild(chip);
+            });
+        } else {
+            container.innerHTML = '<span style="color:#94A3B8; font-size:0.85em;">暂无历史专题，请在上方手动创建</span>';
+        }
+
+        // 显示弹窗
+        document.getElementById('topicModal').classList.add('show');
+    }
+
+    // 2. 关闭弹窗
+    function closeTopicModal() {
+        document.getElementById('topicModal').classList.remove('show');
+        targetTopicItem = null;
+    }
+
+    // 3. 保存确定的专题
+    function confirmTopicModal() {
+        if (!targetTopicItem) return;
+        const newTopic = document.getElementById('topicInputModal').value.trim();
+        let historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        
+        if (newTopic === '') {
+            delete historyData[targetTopicItem.date][targetTopicItem.index].topic; 
+        } else {
+            historyData[targetTopicItem.date][targetTopicItem.index].topic = newTopic; 
+        }
+        
+        localStorage.setItem(getStorageKey(), JSON.stringify(historyData));
+        closeTopicModal();
+        refreshCurrentView();
+        syncToCloud();
+    }
+
+    // 4. 清除/移除该记录的专题
+    function removeTopicModal() {
+        if (!targetTopicItem) return;
+        let historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        delete historyData[targetTopicItem.date][targetTopicItem.index].topic; 
+        
+        localStorage.setItem(getStorageKey(), JSON.stringify(historyData));
+        closeTopicModal();
+        refreshCurrentView();
+        syncToCloud();
+    }
+
+
+    // 以下为原有功能的兼容保留
+    function toggleStar(date, index) {
+        let historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        if (historyData[date] && historyData[date][index]) {
+            historyData[date][index].starred = !historyData[date][index].starred;
+            localStorage.setItem(getStorageKey(), JSON.stringify(historyData)); refreshCurrentView(); syncToCloud(); 
+        }
+    }
+    function startEdit(date, index) {
+        const historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}'); const item = historyData[date][index];
+        document.getElementById('ideaInput').value = item.text; document.getElementById('tagInput').value = item.tags ? item.tags.join(' ') : '';
+        document.getElementById('inputTitle').textContent = '✏️ 正在修改记录...'; document.getElementById('saveBtn').textContent = '💾 保存并同步'; document.getElementById('cancelBtn').style.display = 'block';
+        editingState = { date, index }; window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function cancelEdit() {
+        editingState = null; document.getElementById('ideaInput').value = ''; document.getElementById('tagInput').value = '';
+        document.getElementById('inputTitle').textContent = CONFIG[currentMode].inputLabel; document.getElementById('saveBtn').textContent = '💾 保存并云同步'; document.getElementById('cancelBtn').style.display = 'none';
+    }
+    function deleteIdea(date, index) {
+        if (!confirm('确定要删除这条记录吗？')) return;
+        let historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}');
+        historyData[date].splice(index, 1); if (historyData[date].length === 0) delete historyData[date];
+        localStorage.setItem(getStorageKey(), JSON.stringify(historyData)); updateTagDropdown(); refreshCurrentView(); syncToCloud(); 
+    }
+    function copyToAI(encodedText) {
+        const text = decodeURIComponent(encodedText);
+        navigator.clipboard.writeText(`我记录下了一个碎片的灵感/想法，内容如下：\n\n“${text}”\n\n请你作为我的“灵感加工助手”，帮我把这段思考进行结构化处理。请按：1.核心提炼 2.上下文还原 3.行动拆解 4.拓展联想 这4个部分输出。`).then(() => { alert(`✅ 已复制到剪贴板！`); });
+    }
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.idea-cb'); if (checkboxes.length === 0) return;
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked); checkboxes.forEach(cb => cb.checked = !allChecked);
+    }
+    function batchCopyToAI() {
+        const checkedBoxes = document.querySelectorAll('.idea-cb:checked'); if (checkedBoxes.length === 0) return alert("请先在列表中勾选要处理的记录哦！");
+        let combinedText = ''; checkedBoxes.forEach((cb, index) => { combinedText += `第 ${index + 1} 项：“${decodeURIComponent(cb.dataset.text)}”\n`; });
+        navigator.clipboard.writeText(`我记录了以下 ${checkedBoxes.length} 条碎片化的灵感：\n\n${combinedText}\n请作为我的“灵感加工助手”，针对【每一条】结构化输出。`).then(() => { alert(`✅ 成功合并为批量指令！`); checkedBoxes.forEach(cb => cb.checked = false); });
+    }
+    function exportAllData() {
+        const historyData = JSON.parse(localStorage.getItem(getStorageKey()) || '{}'); const dates = Object.keys(historyData).sort((a, b) => new Date(b) - new Date(a)); 
+        if (dates.length === 0) return alert("当前没有数据可以导出。"); let exportText = `=== 我的备份 ===\n\n`;
+        dates.forEach(date => {
+            exportText += `【日期：${date}】\n`;
+            historyData[date].forEach(item => { exportText += `[${item.time}] ${item.starred ? '[⭐ 置顶] ' : ''}${item.topic ? `[📈 专题: ${item.topic}] ` : ''}\n${item.text}\n---------------------------\n`; });
+            exportText += `\n`;
+        });
+        const blob = new Blob([exportText], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `备份_${new Date().toISOString().split('T')[0]}.txt`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+    function updateTagDropdown() {
+        const historyData = JSON.parse(localStorage.getItem('pure_text_ideas_v2') || '{}'); const allTags = new Set();
+        Object.values(historyData).forEach(dayArray => { dayArray.forEach(item => { if (item.tags) item.tags.forEach(t => allTags.add(t)); }); });
+        const select = document.getElementById('tagFilter'); const currentValue = select.value;
+        select.innerHTML = '<option value="all">🏷️ 查看全部标签</option>';
+        Array.from(allTags).sort().forEach(tag => { select.innerHTML += `<option value="${tag}">${tag}</option>`; });
+        if (allTags.has(currentValue)) select.value = currentValue;
+    }
+
+    let isRecording = false; let recognition;
+    const micBtn = document.getElementById('micBtn'); const ideaInput = document.getElementById('ideaInput');
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'zh-CN';
+        recognition.onstart = () => { isRecording = true; micBtn.classList.add('recording'); micBtn.innerHTML = '🛑 停止'; };
+        recognition.onresult = (event) => { let finalTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript; } if (finalTranscript) ideaInput.value += (ideaInput.value ? ' ' : '') + finalTranscript; };
+        recognition.onerror = () => stopSpeech(); recognition.onend = () => { if (isRecording) recognition.start(); else stopSpeech(); };
+    } else { micBtn.style.display = 'none'; }
+    function toggleSpeech() { if (!recognition) return alert("当前浏览器不支持语音"); if (isRecording) stopSpeech(); else recognition.start(); }
+    function stopSpeech() { isRecording = false; recognition.stop(); micBtn.classList.remove('recording'); micBtn.innerHTML = '🎤 语音'; }
+</script>
+
+</body>
+</html>
